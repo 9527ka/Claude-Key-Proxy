@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/claude-key-proxy
-ExecStart=/usr/bin/node server.js
+ExecStart=/usr/bin/node src/index.js
 Restart=always
 RestartSec=5
 Environment=NODE_ENV=production

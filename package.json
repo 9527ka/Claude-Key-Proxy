@@ -1,12 +1,14 @@
 {
   "name": "claude-key-proxy",
   "version": "1.0.0",
-  "description": "Claude API Key load balancer with dashboard",
-  "main": "server.js",
+  "description": "Claude API Key load balancer — auto-rotate, smart failover, real-time dashboard",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
   },
+  "keywords": ["claude", "anthropic", "api", "proxy", "load-balancer", "key-rotation"],
+  "license": "MIT",
   "dependencies": {
     "better-sqlite3": "^11.0.0"
   }
