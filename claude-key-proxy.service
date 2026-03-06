@@ -1,0 +1,14 @@
+[Unit]
+Description=Claude API Key Load Balancer Proxy
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/claude-key-proxy
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

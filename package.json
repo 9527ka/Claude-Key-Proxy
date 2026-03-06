@@ -1,0 +1,13 @@
+{
+  "name": "claude-key-proxy",
+  "version": "1.0.0",
+  "description": "Claude API Key load balancer with dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0"
+  }
+}

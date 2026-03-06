@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Key Proxy</title>
+<style>
+  :root { --bg:#0f1117; --card:#1a1d29; --border:#2a2d3a; --text:#e4e4e7; --text2:#a1a1aa; --accent:#c084fc; --green:#4ade80; --red:#f87171; --yellow:#fbbf24; --blue:#60a5fa; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,monospace; background:var(--bg); color:var(--text); padding:20px; max-width:1400px; margin:0 auto; }
+  h1 { font-size:1.5rem; margin-bottom:4px; }
+  .sub { color:var(--text2); font-size:.85rem; margin-bottom:24px; }
+
+  /* Login */
+  .login-wrap { display:flex; justify-content:center; align-items:center; min-height:60vh; }
+  .login-box { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:40px; width:100%; max-width:380px; text-align:center; }
+  .login-box h2 { font-size:1.2rem; margin-bottom:6px; }
+  .login-box .login-sub { color:var(--text2); font-size:.8rem; margin-bottom:24px; }
+  .login-box input { width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:.9rem; margin-bottom:12px; }
+  .login-box button { width:100%; padding:12px; font-size:.95rem; }
+
+  /* Header bar */
+  .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+  .topbar-left h1 { margin-bottom:2px; }
+  .topbar-right { display:flex; align-items:center; gap:12px; }
+  .topbar-user { color:var(--text2); font-size:.82rem; }
+  .btn-logout { padding:6px 14px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text2); font-weight:500; cursor:pointer; font-size:.8rem; }
+  .btn-logout:hover { background:var(--card); color:var(--red); border-color:var(--red); }
+
+  button { padding:8px 18px; border-radius:8px; border:none; background:var(--accent); color:#000; font-weight:600; cursor:pointer; font-size:.85rem; }
+  button:hover { opacity:.85; }
+  button.danger { background:var(--red); }
+  button.small { padding:4px 10px; font-size:.75rem; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:24px; }
+  .sc { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px; }
+  .sc .l { color:var(--text2); font-size:.7rem; text-transform:uppercase; letter-spacing:.5px; }
+  .sc .v { font-size:1.5rem; font-weight:700; margin-top:2px; }
+  .keys { display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:16px; margin-bottom:24px; }
+  .kc { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px; }
+  .kc.off { opacity:.45; }
+  .kc.limited { border-color:var(--yellow); }
+  .kh { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .kn { font-weight:700; font-size:1.05rem; }
+  .badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:.68rem; font-weight:600; text-transform:uppercase; }
+  .badge.ok { background:rgba(74,222,128,.15); color:var(--green); }
+  .badge.warn { background:rgba(251,191,36,.15); color:var(--yellow); }
+  .badge.err { background:rgba(248,113,113,.15); color:var(--red); }
+  .km { color:var(--text2); font-size:.72rem; margin-bottom:8px; font-family:monospace; }
+  .kd { display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:.8rem; }
+  .kd .dl { color:var(--text2); }
+  .kd .dv { text-align:right; font-family:monospace; }
+  .quota-bar { margin:10px 0 6px; }
+  .quota-bar-bg { height:8px; background:#1e2030; border-radius:4px; overflow:hidden; }
+  .quota-bar-fill { height:100%; border-radius:4px; transition:width .5s; }
+  .quota-bar-label { display:flex; justify-content:space-between; font-size:.7rem; color:var(--text2); margin-top:3px; }
+  .ka { margin-top:10px; display:flex; gap:8px; }
+  .add { display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap; }
+  .add input { padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text); font-size:.85rem; }
+  .stitle { font-size:1rem; font-weight:700; margin:16px 0 10px; }
+  table { width:100%; border-collapse:collapse; font-size:.8rem; }
+  th,td { padding:7px 10px; text-align:left; border-bottom:1px solid var(--border); }
+  th { color:var(--text2); font-weight:600; text-transform:uppercase; font-size:.68rem; }
+  .refresh { color:var(--text2); font-size:.72rem; }
+  .cost { color:var(--accent); font-weight:700; }
+  #content { display:none; }
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="loginBox" class="login-wrap">
+  <div class="login-box">
+    <h2>🐵 Claude Key Proxy</h2>
+    <p class="login-sub">API Key 负载均衡 · 管理后台</p>
+    <input id="userInput" type="text" placeholder="帐号" value="admin" readonly style="color:var(--text2)">
+    <input id="tokenInput" type="password" placeholder="密码" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">登录</button>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div id="content">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1>🐵 Claude Key Proxy</h1>
+      <p class="sub" style="margin-bottom:0">API Key 负载均衡 · 自动切换 · 消耗监控</p>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-user">👤 admin</span>
+      <button class="btn-logout" onclick="doLogout()">退出</button>
+    </div>
+  </div>
+
+  <div class="stats" id="statsGrid"></div>
+  <div class="stitle">🔑 API Keys <button class="small" onclick="probeAll()" style="margin-left:12px">探测全部</button> <span class="refresh" id="refreshBadge"></span></div>
+  <div class="keys" id="keysGrid"></div>
+  <div class="stitle">➕ 添加 Key</div>
+  <div class="add">
+    <input id="newName" placeholder="名称" style="width:130px">
+    <input id="newKey" placeholder="sk-ant-..." style="flex:1;min-width:200px">
+    <button onclick="addKey()">添加</button>
+  </div>
+  <div class="stitle">📋 最近请求</div>
+  <table>
+    <thead><tr><th>时间</th><th>Key</th><th>模型</th><th>输入</th><th>输出</th><th>缓存写</th><th>缓存读</th><th>状态</th><th>耗时</th></tr></thead>
+    <tbody id="logBody"></tbody>
+  </table>
+</div>
+
+<script>
+let T=localStorage.getItem('pt')||'';
+let refreshTimer;
+
+function doLogin(){
+  T=document.getElementById('tokenInput').value.trim();
+  if(!T){alert('请输入密码');return;}
+  localStorage.setItem('pt',T);
+  init();
+}
+
+function doLogout(){
+  localStorage.removeItem('pt');
+  T='';
+  if(refreshTimer)clearInterval(refreshTimer);
+  document.getElementById('content').style.display='none';
+  document.getElementById('loginBox').style.display='flex';
+  document.getElementById('tokenInput').value='';
+}
+
+function init(){
+  document.getElementById('loginBox').style.display='none';
+  document.getElementById('content').style.display='block';
+  refresh();
+  refreshTimer=setInterval(refresh,5000);
+}
+
+if(T)setTimeout(init,50);
+
+async function api(p,o={}){const s=p.includes('?')?'&':'?';const r=await fetch(`/admin/api${p}${s}token=${T}`,{headers:{'Content-Type':'application/json'},...o});if(r.status===401){doLogout();throw new Error('Auth');}return r.json();}
+
+function N(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return n.toString();}
+function ago(ts){if(!ts)return'-';const s=Math.floor((Date.now()-ts)/1000);if(s<60)return s+'秒前';if(s<3600)return Math.floor(s/60)+'分前';if(s<86400)return Math.floor(s/3600)+'小时前';return Math.floor(s/86400)+'天前';}
+function T2(ts){if(!ts)return'-';return new Date(ts).toLocaleString('zh-CN',{hour12:false});}
+
+async function refresh(){
+  try{
+    const[st,logs]=await Promise.all([api('/status'),api('/logs?limit=50')]);
+    document.getElementById('refreshBadge').textContent='· '+new Date().toLocaleTimeString('zh-CN');
+    const tReqs=st.keys.reduce((s,k)=>s+k.totalRequests,0);
+    const tIn=st.keys.reduce((s,k)=>s+k.totalInputTokens,0);
+    const tOut=st.keys.reduce((s,k)=>s+k.totalOutputTokens,0);
+    const tCost=st.keys.reduce((s,k)=>s+parseFloat(k.estimatedCost),0);
+    const dReqs=st.keys.reduce((s,k)=>s+k.dailyRequests,0);
+    const dIn=st.keys.reduce((s,k)=>s+k.dailyInputTokens,0);
+    const dOut=st.keys.reduce((s,k)=>s+k.dailyOutputTokens,0);
+    const active=st.keys.filter(k=>k.enabled).length;
+    const limited=st.keys.filter(k=>k.rateLimitedUntil>Date.now()).length;
+
+    document.getElementById('statsGrid').innerHTML=`
+      <div class="sc"><div class="l">今日请求</div><div class="v">${N(dReqs)}</div></div>
+      <div class="sc"><div class="l">今日输入</div><div class="v">${N(dIn)}</div></div>
+      <div class="sc"><div class="l">今日输出</div><div class="v">${N(dOut)}</div></div>
+      <div class="sc"><div class="l">总费用(估)</div><div class="v cost">$${tCost.toFixed(2)}</div></div>
+      <div class="sc"><div class="l">活跃/限额中</div><div class="v">${active} / <span style="color:${limited?'var(--yellow)':'var(--green)'}">${limited}</span></div></div>
+      <div class="sc"><div class="l">运行时间</div><div class="v">${Math.floor(st.uptime/3600)}h${Math.floor((st.uptime%3600)/60)}m</div></div>
+    `;
+
+    document.getElementById('keysGrid').innerHTML=st.keys.map(k=>{
+      const isLtd=k.rateLimitedUntil>Date.now();
+      const bc=!k.enabled?'err':isLtd?'warn':'ok';
+      const bt=!k.enabled?'已禁用':isLtd?'限额中':'正常';
+      const cc=!k.enabled?'off':isLtd?'limited':'';
+      const hasRL=k.rlTokensRemaining>=0&&k.rlTokensLimit>0;
+      const pct=hasRL?((k.rlTokensLimit-k.rlTokensRemaining)/k.rlTokensLimit*100).toFixed(1):0;
+      const barColor=pct>90?'var(--red)':pct>70?'var(--yellow)':'var(--green)';
+      return `<div class="kc ${cc}">
+        <div class="kh"><span class="kn">${k.name}</span><span class="badge ${bc}">${bt}</span></div>
+        <div class="km">${k.maskedKey}</div>
+        ${renderBars(k,hasRL,pct,barColor)}
+        <div class="kd">
+          <span class="dl">今日请求</span><span class="dv">${N(k.dailyRequests)}</span>
+          <span class="dl">今日输入</span><span class="dv">${N(k.dailyInputTokens)}</span>
+          <span class="dl">今日输出</span><span class="dv">${N(k.dailyOutputTokens)}</span>
+          <span class="dl">今日费用</span><span class="dv cost">$${k.dailyCost}</span>
+          <span class="dl">总请求</span><span class="dv">${N(k.totalRequests)}</span>
+          <span class="dl">总费用</span><span class="dv cost">$${k.estimatedCost}</span>
+          <span class="dl">最后使用</span><span class="dv">${ago(k.lastUsed)}</span>
+          ${isLtd?`<span class="dl">限额解除</span><span class="dv" style="color:var(--yellow)">${T2(k.rateLimitedUntil)}</span>`:''}
+        </div>
+        <div class="ka">
+          <button class="small" onclick="probe('${k.name}')">探测额度</button>
+          <button class="small" onclick="tog('${k.name}',${!k.enabled})">${k.enabled?'禁用':'启用'}</button>
+          <button class="small danger" onclick="del('${k.name}')">删除</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    document.getElementById('logBody').innerHTML=logs.map(l=>`<tr>
+      <td>${T2(l.ts)}</td><td>${l.key_name}</td><td>${l.model||'-'}</td>
+      <td>${N(l.input_tokens)}</td><td>${N(l.output_tokens)}</td>
+      <td>${N(l.cache_creation_tokens)}</td><td>${N(l.cache_read_tokens)}</td>
+      <td>${l.error_type?`<span style="color:var(--red)">${l.error_type}</span>`:l.status_code}</td>
+      <td>${l.duration_ms}ms</td>
+    </tr>`).join('');
+  }catch(e){console.error(e);}
+}
+
+function renderBars(k,hasRL,pct,barColor){
+  let html='';
+  const lim=k.dailyTokenLimit||0;
+  const usedTk=(k.dailyInputTokens||0)+(k.dailyOutputTokens||0);
+  const usedPct=lim>0?Math.min(usedTk/lim*100,100).toFixed(1):0;
+  const full=lim>0&&usedTk>=lim;
+  const esc=k.name.replace(/'/g,"\\'");
+  // Slider steps: 0, 50K, 100K ... 5M
+  const sliderVal=lim>0?Math.round(lim/50000):0;
+  const sliderMax=100; // 100 * 50K = 5M
+  html+=`<div class="quota-bar" style="margin-top:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span style="font-size:.72rem;color:var(--text2)">日 Token 上限</span>
+      <span style="font-size:.72rem;color:var(--text2)" id="lbl_${esc}">${lim>0?N(lim)+' tokens':'不限'}</span>
+    </div>
+    <input type="range" min="0" max="${sliderMax}" step="1" value="${sliderVal}"
+      style="width:100%;accent-color:var(--accent);cursor:pointer"
+      oninput="document.getElementById('lbl_${esc}').textContent=this.value>0?fmtTk(this.value*50000)+' tokens':'不限'"
+      onchange="setLimit('${esc}',parseInt(this.value)*50000)">
+    ${lim>0?`<div style="display:flex;justify-content:space-between;margin-top:4px">
+      <span style="font-size:.72rem;${full?'color:var(--red);font-weight:700':'color:var(--text2)'}">已用 ${N(usedTk)} tokens (${usedPct}%)${full?' ⛔ 已达上限':''}</span>
+    </div>
+    <div class="quota-bar-bg" style="margin-top:4px"><div class="quota-bar-fill" style="width:${usedPct}%;background:${usedPct>90?'var(--red)':usedPct>70?'var(--yellow)':'var(--accent)'}"></div></div>`
+    :`<div style="font-size:.72rem;color:var(--text2);margin-top:4px">已用 ${N(usedTk)} tokens</div>`}
+  </div>`;
+  // API额度进度条
+  if(hasRL){
+    html+=`<div class="quota-bar"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:.72rem;color:var(--text2)">API 额度</span><span style="font-size:.72rem;color:var(--text2)"><b>${pct}%</b> · 剩余 ${N(k.rlTokensRemaining)} / ${N(k.rlTokensLimit)}</span></div><div class="quota-bar-bg"><div class="quota-bar-fill" style="width:${pct}%;background:${barColor}"></div></div></div>`;
+  }
+  return html;
+}
+function fmtTk(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(0)+'K';return n.toString();}
+async function setLimit(n,v){await api(`/keys/${encodeURIComponent(n)}`,{method:'PATCH',body:JSON.stringify({dailyTokenLimit:v})});}
+async function probe(n){const b=event.target;b.textContent='探测中...';b.disabled=true;try{await api('/probe',{method:'POST',body:JSON.stringify({keyName:n})});refresh();}finally{b.textContent='探测额度';b.disabled=false;}}
+async function probeAll(){const b=event.target;b.textContent='探测中...';b.disabled=true;try{await api('/probe',{method:'POST',body:JSON.stringify({})});refresh();}finally{b.textContent='探测全部';b.disabled=false;}}
+async function tog(n,v){await api(`/keys/${encodeURIComponent(n)}`,{method:'PATCH',body:JSON.stringify({enabled:v})});refresh();}
+async function del(n){if(!confirm(`确认删除 ${n}？`))return;await api(`/keys/${encodeURIComponent(n)}`,{method:'DELETE'});refresh();}
+async function addKey(){const n=document.getElementById('newName').value.trim(),k=document.getElementById('newKey').value.trim();if(!n||!k)return alert('名称和Key都要填');await api('/keys',{method:'POST',body:JSON.stringify({name:n,key:k,enabled:true})});document.getElementById('newName').value='';document.getElementById('newKey').value='';refresh();}
+</script>
+</body>
+</html>
